@@ -1,8 +1,27 @@
 {
   "emergency_procedures": {
+    "engine_failure_at_altitude": {
+      "description": "Engine failure at 6,000 feet requiring glide to safe landing site",
+      "keywords": ["engine", "failure", "power", "glide", "altitude", "6000", "emergency landing"],
+      "procedures": [
+        "Maintain best glide speed immediately",
+        "Identify suitable emergency landing location quickly",
+        "Communicate emergency properly to ATC/UNICOM",
+        "Maintain best glide speed and prepare for landing",
+        "Coordinate with ground EMS for patient transport",
+        "Execute controlled emergency landing"
+      ],
+      "tips": [
+        "Altitude is your friend - don't waste it",
+        "Aim for the first third of your chosen field",
+        "Turn off fuel and electrical systems before impact",
+        "Quick decision-making is critical",
+        "Prioritize flat and obstacle-free areas"
+      ]
+    },
     "engine_failure": {
-      "description": "Procedures for handling complete or partial engine failure during flight",
-      "keywords": ["engine", "failure", "power", "glide"],
+      "description": "General engine failure procedures for EMS aircraft",
+      "keywords": ["engine", "failure", "power", "glide", "emergency"],
       "procedures": [
         "Maintain best glide speed immediately",
         "Look for suitable emergency landing area",
@@ -17,9 +36,27 @@
         "Turn off fuel and electrical systems before impact"
       ]
     },
+    "autorotation": {
+      "description": "Helicopter autorotation emergency procedures",
+      "keywords": ["autorotation", "helicopter", "rotor", "emergency", "landing"],
+      "procedures": [
+        "Lower collective immediately to maintain rotor RPM",
+        "Establish best glide airspeed",
+        "Select suitable landing area",
+        "Communicate emergency with ATC",
+        "Prepare for touchdown sequence",
+        "Execute flare and landing"
+      ],
+      "tips": [
+        "Maintain rotor RPM in green arc",
+        "Aim for large open areas",
+        "Practice autorotations regularly",
+        "Height and airspeed for distance"
+      ]
+    },
     "severe_weather": {
-      "description": "Handling severe weather diversions and emergency procedures",
-      "keywords": ["weather", "storm", "diversion", "turbulence"],
+      "description": "Handling severe weather encounters and diversions",
+      "keywords": ["weather", "storm", "diversion", "turbulence", "icing", "visibility"],
       "procedures": [
         "Request immediate vector around weather",
         "Consider diversion to alternate airport",
@@ -31,12 +68,30 @@
       "tips": [
         "Don't try to penetrate severe weather",
         "Have multiple alternate airports planned",
-        "Monitor weather updates continuously"
+        "Monitor weather updates continuously",
+        "Patient transport can wait - crew safety first"
+      ]
+    },
+    "fire_emergency": {
+      "description": "Aircraft fire emergency procedures",
+      "keywords": ["fire", "smoke", "burning", "flames", "electrical"],
+      "procedures": [
+        "Land immediately at nearest airport",
+        "Shut off fuel systems",
+        "Turn off electrical systems",
+        "Evacuate aircraft quickly",
+        "Call emergency services",
+        "Use fire extinguisher if safe to do so"
+      ],
+      "tips": [
+        "Don't delay - fire spreads rapidly",
+        "Use emergency exits if available",
+        "Stay low to avoid smoke inhalation"
       ]
     },
     "communication_failure": {
-      "description": "Procedures when radio communication is lost",
-      "keywords": ["radio", "communication", "lost", "comms", "7600"],
+      "description": "Lost communication procedures (NORDO)",
+      "keywords": ["radio", "communication", "lost", "comms", "7600", "nordo"],
       "procedures": [
         "Squawk 7600 immediately",
         "Try different radio/frequency",
@@ -50,12 +105,30 @@
         "Guard frequency is monitored by all ATC",
         "Know light gun signals before you need them"
       ]
+    },
+    "controlled_flight_terrain": {
+      "description": "CFIT avoidance and terrain awareness procedures",
+      "keywords": ["terrain", "CFIT", "ground", "altitude", "obstacle", "mountain"],
+      "procedures": [
+        "Immediately climb to safe altitude",
+        "Reference terrain awareness systems",
+        "Verify GPS position and altitude",
+        "Request vectors from ATC if available",
+        "Follow published minimum safe altitudes",
+        "Use all available navigation aids"
+      ],
+      "tips": [
+        "Know your minimum safe altitudes",
+        "Brief terrain hazards before departure",
+        "When in doubt, climb",
+        "Use terrain awareness systems actively"
+      ]
     }
   },
   "medical_procedures": {
     "patient_loading": {
-      "description": "Safe and efficient patient loading procedures for EMS flights",
-      "keywords": ["patient", "loading", "medical", "evacuation"],
+      "description": "Safe patient loading procedures for EMS flights",
+      "keywords": ["patient", "loading", "medical", "evacuation", "safety"],
       "procedures": [
         "Shut down engines completely before loading",
         "Ensure rotor disc is stopped (helicopters)",
@@ -67,96 +140,231 @@
       "tips": [
         "Patient safety is always the priority",
         "Never rush the loading process",
-        "Communicate with medical team throughout"
+        "Communicate with medical team throughout",
+        "Check equipment security twice"
       ]
     },
     "in_flight_medical": {
-      "description": "Handling medical emergencies during flight",
-      "keywords": ["medical", "emergency", "patient", "critical"],
+      "description": "Managing medical emergencies during flight",
+      "keywords": ["medical", "emergency", "patient", "critical", "vitals"],
       "procedures": [
         "Maintain aircraft control as priority",
         "Request priority landing at nearest hospital",
         "Coordinate with medical team onboard",
-        "Prepare for possible CPR landing",
+        "Prepare for possible emergency landing",
         "Communicate patient status to receiving hospital",
         "Execute rapid but safe approach and landing"
       ],
       "tips": [
         "Fly the aircraft first, then assist medical team",
         "Know locations of all nearby hospitals",
-        "Practice emergency descent procedures"
-      ]
-    }
-  },
-  "communication": {
-    "emergency_phraseology": {
-      "description": "Standard phraseology for emergency communications",
-      "keywords": ["mayday", "pan-pan", "emergency", "radio"],
-      "procedures": [
-        "MAYDAY for life-threatening emergencies",
-        "PAN-PAN for urgent situations",
-        "State aircraft identification",
-        "Give nature of emergency",
-        "Provide position and altitude",
-        "State intentions and assistance needed"
-      ],
-      "tips": [
-        "Speak clearly and slowly",
-        "Repeat important information",
-        "Don't be afraid to declare emergency"
+        "Have backup plans for weather delays"
       ]
     },
-    "atc_coordination": {
-      "description": "Effective coordination with Air Traffic Control",
-      "keywords": ["atc", "clearance", "coordination", "priority"],
+    "patient_stabilization": {
+      "description": "Basic patient stabilization for EMS crews",
+      "keywords": ["stabilization", "vitals", "ABC", "airway", "breathing", "circulation"],
       "procedures": [
-        "Request priority clearance for EMS flights",
-        "Provide flight plan and route",
-        "Communicate any special requirements",
-        "Acknowledge all clearances",
-        "Report any deviations immediately",
-        "Coordinate landing with destination airport"
+        "Assess airway, breathing, circulation (ABC)",
+        "Monitor vital signs continuously",
+        "Secure IV lines and medical equipment",
+        "Document all interventions and times",
+        "Communicate with medical control",
+        "Prepare for rapid transport"
       ],
       "tips": [
-        "EMS flights usually get priority handling",
-        "Be specific about your requirements",
-        "Maintain professional communication"
+        "ABC assessment is priority",
+        "Time is critical in medical emergencies",
+        "Clear communication saves lives",
+        "Know your equipment limitations"
       ]
     }
   },
   "flight_operations": {
-    "landing_sites": {
-      "description": "Selecting appropriate emergency landing sites",
-      "keywords": ["landing", "emergency", "site", "field"],
+    "pre_flight_checks": {
+      "description": "Comprehensive pre-flight inspection procedures",
+      "keywords": ["preflight", "inspection", "checklist", "safety"],
       "procedures": [
-        "Look for flat, obstacle-free terrain",
-        "Consider wind direction and strength",
-        "Assess approach and departure paths",
-        "Check for ground accessibility for EMS",
-        "Verify adequate length and width",
-        "Avoid populated areas if possible"
+        "Complete thorough aircraft inspection",
+        "Check weather conditions and forecasts",
+        "Review NOTAMs and TFRs",
+        "Calculate weight and balance",
+        "Brief crew on mission parameters",
+        "Test all emergency equipment"
       ],
       "tips": [
-        "Always have backup landing sites identified",
-        "Soft ground is better than hard surfaces",
-        "Consider emergency vehicle access"
+        "Never skip checklist items",
+        "Weather can change rapidly",
+        "Know your aircraft limitations",
+        "Brief emergencies before they happen"
       ]
     },
-    "short_field_operations": {
-      "description": "Techniques for short field takeoffs and landings",
-      "keywords": ["short", "field", "stol", "takeoff", "landing"],
+    "night_operations": {
+      "description": "Special procedures for night EMS flights",
+      "keywords": ["night", "darkness", "lighting", "visibility"],
       "procedures": [
-        "Use full flaps for maximum lift",
-        "Apply maximum allowable power",
-        "Rotate at recommended short field speed",
-        "Maintain best angle of climb speed",
-        "Land on numbers for maximum rollout",
-        "Apply maximum braking after touchdown"
+        "Complete night vision adaptation",
+        "Test all aircraft lighting systems",
+        "Brief night emergency procedures",
+        "Use red lighting to preserve night vision",
+        "Plan for alternate airports",
+        "Monitor weather more frequently"
       ],
       "tips": [
-        "Know your aircraft's short field performance",
-        "Account for wind and density altitude",
-        "Practice these procedures regularly"
+        "Allow 30 minutes for night vision adaptation",
+        "Use minimal cabin lighting",
+        "Have backup lighting available",
+        "Night approaches require extra vigilance"
+      ]
+    },
+    "landing_zone_operations": {
+      "description": "Safe landing zone setup and operations",
+      "keywords": ["landing zone", "LZ", "helicopter", "safety", "ground"],
+      "procedures": [
+        "Survey landing zone for hazards",
+        "Establish wind direction and speed",
+        "Set up proper lighting/markers",
+        "Brief ground personnel on safety",
+        "Maintain clear approach/departure paths",
+        "Have fire/medical standby ready"
+      ],
+      "tips": [
+        "100x100 feet minimum for most helicopters",
+        "Remove or secure loose objects",
+        "Keep vehicles and personnel clear",
+        "Wind direction determines approach"
+      ]
+    }
+  },
+  "training_procedures": {
+    "student_requirements": {
+      "description": "Requirements for EMS flight training students",
+      "keywords": ["student", "training", "requirements", "certification"],
+      "procedures": [
+        "Complete ground school training",
+        "Pass written examinations",
+        "Demonstrate emergency procedures",
+        "Complete minimum flight hours",
+        "Pass practical flight test",
+        "Maintain current medical certificate"
+      ],
+      "tips": [
+        "Practice emergencies regularly",
+        "Study real-world scenarios",
+        "Ask questions during training",
+        "Safety is always the priority"
+      ]
+    },
+    "trainer_responsibilities": {
+      "description": "Responsibilities of EMS flight trainers",
+      "keywords": ["trainer", "instructor", "teaching", "evaluation"],
+      "procedures": [
+        "Ensure student readiness for training",
+        "Demonstrate proper procedures",
+        "Evaluate student performance",
+        "Provide constructive feedback",
+        "Document training progress",
+        "Maintain training standards"
+      ],
+      "tips": [
+        "Lead by example",
+        "Encourage questions and learning",
+        "Focus on real-world applications",
+        "Safety standards are non-negotiable"
+      ]
+    },
+    "surprise_emergencies": {
+      "description": "Handling unexpected emergency scenarios during training",
+      "keywords": ["surprise", "emergency", "training", "scenario", "unexpected"],
+      "procedures": [
+        "Assess situation quickly",
+        "Apply appropriate emergency procedures",
+        "Communicate with all crew members",
+        "Make quick but safe decisions",
+        "Execute emergency procedures properly",
+        "Debrief after scenario completion"
+      ],
+      "tips": [
+        "Stay calm under pressure",
+        "Use crew resource management",
+        "Practice makes perfect",
+        "Learn from every scenario"
+      ]
+    }
+  },
+  "communication_procedures": {
+    "emergency_phraseology": {
+      "description": "Standard emergency communication phraseology",
+      "keywords": ["phraseology", "radio", "emergency", "mayday", "pan pan"],
+      "procedures": [
+        "Use MAYDAY for life-threatening emergencies",
+        "Use PAN PAN for urgent situations",
+        "State aircraft identification clearly",
+        "Provide nature of emergency",
+        "Give position and intentions",
+        "Request assistance needed"
+      ],
+      "tips": [
+        "Speak clearly and slowly",
+        "Repeat important information",
+        "Use standard phraseology",
+        "Stay calm on the radio"
+      ]
+    },
+    "medical_coordination": {
+      "description": "Coordinating with medical facilities and control",
+      "keywords": ["medical", "coordination", "hospital", "control", "patient"],
+      "procedures": [
+        "Contact medical control early",
+        "Provide patient condition update",
+        "Confirm receiving hospital",
+        "Give estimated time of arrival",
+        "Coordinate ground transportation",
+        "Brief hospital on patient needs"
+      ],
+      "tips": [
+        "Clear communication saves time",
+        "Provide accurate patient information",
+        "Confirm all details",
+        "Have backup hospitals ready"
+      ]
+    }
+  },
+  "weather_procedures": {
+    "icing_conditions": {
+      "description": "Recognizing and handling icing conditions",
+      "keywords": ["icing", "ice", "freezing", "precipitation", "temperature"],
+      "procedures": [
+        "Monitor outside air temperature",
+        "Watch for ice accumulation",
+        "Request altitude change if icing present",
+        "Turn on anti-ice/de-ice systems",
+        "Land immediately if severe icing",
+        "Avoid flight into known icing"
+      ],
+      "tips": [
+        "Ice forms quickly in certain conditions",
+        "Small amounts can be dangerous",
+        "Exit icing conditions immediately",
+        "Know your aircraft's capabilities"
+      ]
+    },
+    "low_visibility": {
+      "description": "Operations in reduced visibility conditions",
+      "keywords": ["visibility", "fog", "clouds", "IMC", "IFR"],
+      "procedures": [
+        "Reference instruments immediately",
+        "Request vectors if needed",
+        "Use all available navigation aids",
+        "Consider diversion to VFR conditions",
+        "Follow published approach procedures",
+        "Execute missed approach if unstable"
+      ],
+      "tips": [
+        "Trust your instruments",
+        "Don't continue unsafe approaches",
+        "Have alternate plans ready",
+        "Know minimum weather requirements"
       ]
     }
   }

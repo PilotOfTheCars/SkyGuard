@@ -28,23 +28,51 @@ class HelpSystemCog(commands.Cog):
 
     def search_knowledge(self, query):
         """Search the knowledge base for relevant information"""
-        query = query.lower()
+        query_lower = query.lower()
         results = []
+        query_words = query_lower.split()
         
         for category, topics in self.knowledge_base.items():
             for topic, content in topics.items():
-                # Check if query matches topic or content
-                if (query in topic.lower() or 
-                    query in content.get('description', '').lower() or
-                    any(query in keyword.lower() for keyword in content.get('keywords', []))):
-                    
+                score = 0
+                
+                # Check exact keyword matches (high score)
+                keywords = content.get('keywords', [])
+                for keyword in keywords:
+                    if keyword.lower() in query_lower:
+                        score += 10
+                    for word in query_words:
+                        if word in keyword.lower():
+                            score += 5
+                
+                # Check topic name matches
+                if any(word in topic.lower() for word in query_words):
+                    score += 8
+                
+                # Check description matches
+                description = content.get('description', '').lower()
+                for word in query_words:
+                    if word in description:
+                        score += 3
+                
+                # Check procedure text matches
+                procedures = content.get('procedures', [])
+                for procedure in procedures:
+                    for word in query_words:
+                        if word in procedure.lower():
+                            score += 2
+                
+                if score > 0:
                     results.append({
+                        'score': score,
                         'category': category,
                         'topic': topic,
                         'content': content
                     })
-                    
-        return results[:5]  # Return top 5 results
+        
+        # Sort by score and return top 3 results
+        results.sort(key=lambda x: x['score'], reverse=True)
+        return results[:3]
 
     @discord.app_commands.command(name="ask_ems", description="Ask a question about EMS procedures")
     async def ask_ems(
