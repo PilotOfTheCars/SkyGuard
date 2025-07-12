@@ -3,7 +3,7 @@ from discord.ext import commands, tasks
 import json
 import logging
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -11,247 +11,171 @@ logger = logging.getLogger(__name__)
 class RemindersCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.reminders_file = Path('data/reminders.json')
-        self.reminders = self.load_reminders()
+        self.reminders = {}
+        self.rank_hierarchy = {
+            "Student": 1,
+            "Trainer": 2,
+            "Command": 3
+        }
+        self.load_reminders()
         self.reminder_check.start()
         
     def load_reminders(self):
         """Load reminders database"""
         try:
-            if self.reminders_file.exists():
-                with open(self.reminders_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+            reminders_file = Path('data/reminders.json')
+            if reminders_file.exists():
+                with open(reminders_file, 'r', encoding='utf-8') as f:
+                    self.reminders = json.load(f)
             else:
-                return []
+                self.reminders = {}
+                self.save_reminders()
         except Exception as e:
             logger.error(f"Error loading reminders: {e}")
-            return []
+            self.reminders = {}
     
     async def save_reminders(self):
         """Save reminders database"""
         try:
-            with open(self.reminders_file, 'w', encoding='utf-8') as f:
+            Path('data').mkdir(exist_ok=True)
+            with open('data/reminders.json', 'w', encoding='utf-8') as f:
                 json.dump(self.reminders, f, indent=2)
         except Exception as e:
             logger.error(f"Error saving reminders: {e}")
-
+    
     def get_user_rank(self, user):
         """Get user's rank"""
-        try:
-            users_file = Path('data/users.json')
-            if users_file.exists():
-                with open(users_file, 'r') as f:
-                    users_data = json.load(f)
-                    user_data = users_data.get(str(user.id), {})
-                    return user_data.get('rank', 'Student')
-        except:
-            pass
+        role_names = [role.name.lower() for role in user.roles]
         
-        # Check admin permissions
-        if user.guild_permissions.administrator:
-            return 'Command'
-        return 'Student'
+        if any(name in role_names for name in ['command', 'commander', 'chief']):
+            return "Command"
+        elif any(name in role_names for name in ['trainer', 'instructor', 'teacher']):
+            return "Trainer"
+        else:
+            return "Student"
 
     @discord.app_commands.command(name="schedule", description="Schedule a reminder message (Trainer+ only)")
+    @discord.app_commands.describe(
+        message="Reminder message",
+        minutes="Minutes from now to send reminder",
+        repeat="Repeat interval"
+    )
+    @discord.app_commands.choices(repeat=[
+        discord.app_commands.Choice(name="None", value="None"),
+        discord.app_commands.Choice(name="Daily", value="Daily"),
+        discord.app_commands.Choice(name="Weekly", value="Weekly"),
+        discord.app_commands.Choice(name="Monthly", value="Monthly")
+    ])
     async def schedule(
         self,
-        ctx,
+        interaction: discord.Interaction,
         message: str,
-        time: str,
-        channel: str = None,
-        repeat: str = 
-            str,
-            "Repeat interval",
-            choices=["None", "Daily", "Weekly", "Monthly"],
-            required=False
-        ) = "None"
+        minutes: int,
+        repeat: str = "None"
     ):
         """Schedule a reminder message"""
         try:
             user_rank = self.get_user_rank(interaction.user)
             
             # Check permissions (Trainer+ only)
-            if user_rank not in ['Trainer', 'Command']:
+            if self.rank_hierarchy.get(user_rank, 0) < 2:
                 await interaction.response.send_message("❌ You need Trainer rank or higher to schedule reminders.")
                 return
             
-            # Parse time
-            try:
-                reminder_time = datetime.strptime(time, "%Y-%m-%d %H:%M")
-                reminder_time = reminder_time.replace(tzinfo=timezone.utc)
-            except ValueError:
-                await interaction.response.send_message("❌ Invalid time format. Use: YYYY-MM-DD HH:MM (UTC)")
-                return
-            
-            # Check if time is in the future
-            if reminder_time <= datetime.now(timezone.utc):
-                await interaction.response.send_message("❌ Reminder time must be in the future.")
-                return
-            
-            # Set default channel
-            target_channel = channel if channel else interaction.channel
+            # Calculate reminder time
+            reminder_time = datetime.now(timezone.utc) + timedelta(minutes=minutes)
             
             # Create reminder
+            reminder_id = len(self.reminders) + 1
             reminder = {
-                'id': len(self.reminders) + 1,
+                'id': reminder_id,
                 'message': message,
-                'scheduled_time': reminder_time.isoformat(),
-                'channel_id': target_channel.id,
-                'guild_id': interaction.guild.id,
+                'channel_id': str(interaction.channel.id),
                 'created_by': str(interaction.user.id),
-                'created_at': datetime.now(timezone.utc).isoformat(),
+                'created_by_name': interaction.user.display_name,
+                'reminder_time': reminder_time.isoformat(),
                 'repeat': repeat,
-                'sent': False,
-                'active': True
+                'active': True,
+                'created_at': datetime.now(timezone.utc).isoformat()
             }
             
-            self.reminders.append(reminder)
+            self.reminders[str(reminder_id)] = reminder
             await self.save_reminders()
             
             embed = discord.Embed(
                 title="⏰ Reminder Scheduled",
-                description="Your reminder has been successfully scheduled",
-                color=0x00ff00,
-                timestamp=datetime.now(timezone.utc)
+                description=f"Reminder #{reminder_id} has been scheduled",
+                color=0x00ff00
             )
-            
-            embed.add_field(name="📝 Message", value=message, inline=False)
-            embed.add_field(name="📅 Scheduled Time", value=f"<t:{int(reminder_time.timestamp())}:F>", inline=True)
-            embed.add_field(name="📺 Channel", value=target_channel.mention, inline=True)
-            embed.add_field(name="🔄 Repeat", value=repeat, inline=True)
-            embed.add_field(name="🆔 Reminder ID", value=f"#{reminder['id']}", inline=True)
-            embed.add_field(name="⏱️ Time Until", value=f"<t:{int(reminder_time.timestamp())}:R>", inline=True)
-            
-            embed.set_footer(text=f"Created by {interaction.user.display_name}")
+            embed.add_field(name="Message", value=message, inline=False)
+            embed.add_field(name="Time", value=f"<t:{int(reminder_time.timestamp())}:F>", inline=True)
+            embed.add_field(name="Repeat", value=repeat, inline=True)
+            embed.add_field(name="Created By", value=interaction.user.display_name, inline=True)
             
             await interaction.response.send_message(embed=embed)
-            logger.info(f"Reminder scheduled by {interaction.user} for {reminder_time}")
             
         except Exception as e:
             logger.error(f"Error in schedule command: {e}")
             await interaction.response.send_message("❌ An error occurred while scheduling the reminder.")
 
-    @discord.app_commands.command(name="reminders", description="View scheduled reminders")
-    @discord.app_commands.describe(message="The reminder message")
+    @commands.command(name="reminders")
     async def view_reminders(self, ctx):
         """View all scheduled reminders"""
         try:
-            user_rank = self.get_user_rank(interaction.user)
+            active_reminders = {k: v for k, v in self.reminders.items() if v.get('active', True)}
             
-            # Filter reminders based on permissions
-            if user_rank in ['Trainer', 'Command']:
-                # Trainers can see all reminders
-                visible_reminders = [r for r in self.reminders if r.get('active', True)]
-            else:
-                # Students can only see their own
-                visible_reminders = [
-                    r for r in self.reminders 
-                    if r.get('created_by') == str(interaction.user.id) and r.get('active', True)
-                ]
-            
-            if not visible_reminders:
-                await interaction.response.send_message("📅 No active reminders found.")
+            if not active_reminders:
+                await ctx.send("📅 No active reminders scheduled.")
                 return
-            
-            # Sort by scheduled time
-            visible_reminders.sort(key=lambda x: x['scheduled_time'])
             
             embed = discord.Embed(
                 title="📅 Scheduled Reminders",
-                description=f"Active reminders ({len(visible_reminders)} total)",
+                description="All active reminders",
                 color=0x3498db
             )
             
-            for reminder in visible_reminders[:10]:  # Show max 10 reminders
-                scheduled_time = datetime.fromisoformat(reminder['scheduled_time'])
-                creator = self.bot.get_user(int(reminder['created_by']))
-                creator_name = creator.display_name if creator else "Unknown"
-                
-                channel = self.bot.get_channel(reminder['channel_id'])
-                channel_name = channel.name if channel else "Unknown Channel"
-                
-                field_value = f"📝 {reminder['message'][:100]}{'...' if len(reminder['message']) > 100 else ''}\n"
-                field_value += f"📺 #{channel_name}\n"
-                field_value += f"🔄 {reminder.get('repeat', 'None')}\n"
-                field_value += f"👤 {creator_name}\n"
-                field_value += f"⏰ <t:{int(scheduled_time.timestamp())}:R>"
+            for reminder_id, reminder in list(active_reminders.items())[:10]:  # Show max 10
+                reminder_time = datetime.fromisoformat(reminder['reminder_time'].replace('Z', '+00:00'))
                 
                 embed.add_field(
-                    name=f"🆔 #{reminder['id']} - <t:{int(scheduled_time.timestamp())}:f>",
-                    value=field_value,
+                    name=f"#{reminder['id']} | {reminder.get('repeat', 'One-time')}",
+                    value=f"**Message:** {reminder['message'][:100]}...\n"
+                          f"**Time:** <t:{int(reminder_time.timestamp())}:R>\n"
+                          f"**Created by:** {reminder.get('created_by_name', 'Unknown')}",
                     inline=False
                 )
             
-            if len(visible_reminders) > 10:
-                embed.set_footer(text=f"Showing 10 of {len(visible_reminders)} reminders")
-            
-            await interaction.response.send_message(embed=embed)
+            await ctx.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error in view_reminders command: {e}")
-            await interaction.response.send_message("❌ An error occurred while loading reminders.")
+            await ctx.send("❌ An error occurred while loading reminders.")
 
-    @discord.app_commands.command(name="cancel_reminder", description="Cancel a scheduled reminder")
-    @discord.app_commands.describe(message="The reminder message")
-    async def cancel_reminder(
-        self,
-        ctx,
-        reminder_id: str
-    ):
+    @commands.command(name="cancel_reminder")
+    async def cancel_reminder(self, ctx, reminder_id: str):
         """Cancel a scheduled reminder"""
         try:
-            user_rank = self.get_user_rank(interaction.user)
+            user_rank = self.get_user_rank(ctx.author)
+            
+            # Check permissions (Trainer+ only)
+            if self.rank_hierarchy.get(user_rank, 0) < 2:
+                await ctx.send("❌ You need Trainer rank or higher to cancel reminders.")
+                return
             
             # Find reminder
-            reminder = None
-            for r in self.reminders:
-                if r['id'] == reminder_id:
-                    reminder = r
-                    break
-            
-            if not reminder:
-                await interaction.response.send_message(f"❌ Reminder #{reminder_id} not found.")
+            if reminder_id not in self.reminders:
+                await ctx.send(f"❌ Reminder #{reminder_id} not found.")
                 return
             
-            # Check permissions
-            if (reminder['created_by'] != str(interaction.user.id) and 
-                user_rank not in ['Trainer', 'Command']):
-                await interaction.response.send_message("❌ You can only cancel your own reminders.")
-                return
-            
-            # Check if already sent or cancelled
-            if not reminder.get('active', True):
-                await interaction.response.send_message(f"❌ Reminder #{reminder_id} is already cancelled.")
-                return
-            
-            # Cancel reminder
+            reminder = self.reminders[reminder_id]
             reminder['active'] = False
-            reminder['cancelled_at'] = datetime.now(timezone.utc).isoformat()
-            reminder['cancelled_by'] = str(interaction.user.id)
-            
             await self.save_reminders()
             
-            embed = discord.Embed(
-                title="🗑️ Reminder Cancelled",
-                description=f"Reminder #{reminder_id} has been cancelled",
-                color=0xff6b6b
-            )
-            
-            embed.add_field(name="📝 Message", value=reminder['message'], inline=False)
-            
-            scheduled_time = datetime.fromisoformat(reminder['scheduled_time'])
-            embed.add_field(
-                name="📅 Was Scheduled For",
-                value=f"<t:{int(scheduled_time.timestamp())}:F>",
-                inline=False
-            )
-            
-            await interaction.response.send_message(embed=embed)
-            logger.info(f"Reminder #{reminder_id} cancelled by {interaction.user}")
+            await ctx.send(f"✅ Cancelled reminder #{reminder_id}: **{reminder['message'][:50]}...**")
             
         except Exception as e:
             logger.error(f"Error in cancel_reminder command: {e}")
-            await interaction.response.send_message("❌ An error occurred while cancelling the reminder.")
+            await ctx.send("❌ An error occurred while cancelling the reminder.")
 
     @tasks.loop(minutes=1)
     async def reminder_check(self):
@@ -259,95 +183,78 @@ class RemindersCog(commands.Cog):
         try:
             current_time = datetime.now(timezone.utc)
             
-            for reminder in self.reminders:
-                if (reminder.get('active', True) and 
-                    not reminder.get('sent', False)):
+            for reminder_id, reminder in list(self.reminders.items()):
+                if not reminder.get('active', True):
+                    continue
+                
+                reminder_time = datetime.fromisoformat(reminder['reminder_time'].replace('Z', '+00:00'))
+                
+                # Check if it's time to send the reminder
+                if current_time >= reminder_time:
+                    await self.send_reminder(reminder)
                     
-                    scheduled_time = datetime.fromisoformat(reminder['scheduled_time'])
+                    # Handle repeat reminders
+                    repeat_type = reminder.get('repeat', 'None')
+                    if repeat_type != 'None':
+                        await self.schedule_repeat(reminder, repeat_type)
+                    else:
+                        # Mark as inactive for one-time reminders
+                        reminder['active'] = False
                     
-                    # Check if it's time to send
-                    if current_time >= scheduled_time:
-                        await self.send_reminder(reminder)
-            
+                    await self.save_reminders()
+                    
         except Exception as e:
             logger.error(f"Error in reminder check: {e}")
 
     async def send_reminder(self, reminder):
         """Send a reminder message"""
         try:
-            channel = self.bot.get_channel(reminder['channel_id'])
+            channel = self.bot.get_channel(int(reminder['channel_id']))
             if not channel:
                 logger.warning(f"Channel {reminder['channel_id']} not found for reminder {reminder['id']}")
                 return
             
-            creator = self.bot.get_user(int(reminder['created_by']))
-            creator_name = creator.display_name if creator else "Unknown"
-            
             embed = discord.Embed(
                 title="⏰ Scheduled Reminder",
                 description=reminder['message'],
-                color=0xf39c12,
-                timestamp=datetime.now(timezone.utc)
+                color=0xffa500
             )
+            embed.add_field(name="Created By", value=reminder.get('created_by_name', 'Unknown'), inline=True)
+            embed.add_field(name="Reminder ID", value=f"#{reminder['id']}", inline=True)
             
-            embed.set_footer(text=f"Scheduled by {creator_name}")
-            
-            await channel.send(embed=embed)
-            
-            # Mark as sent
-            reminder['sent'] = True
-            reminder['sent_at'] = datetime.now(timezone.utc).isoformat()
-            
-            # Handle repeating reminders
-            repeat_type = reminder.get('repeat', 'None')
-            if repeat_type != 'None':
-                await self.schedule_repeat(reminder, repeat_type)
-            else:
-                reminder['active'] = False
-            
-            await self.save_reminders()
-            logger.info(f"Reminder {reminder['id']} sent to {channel.name}")
+            await channel.send(content="📢 **REMINDER**", embed=embed)
+            logger.info(f"Sent reminder {reminder['id']} to channel {reminder['channel_id']}")
             
         except Exception as e:
-            logger.error(f"Error sending reminder {reminder['id']}: {e}")
+            logger.error(f"Error sending reminder {reminder.get('id', 'unknown')}: {e}")
 
     async def schedule_repeat(self, reminder, repeat_type):
         """Schedule the next occurrence of a repeating reminder"""
         try:
-            scheduled_time = datetime.fromisoformat(reminder['scheduled_time'])
+            current_time = datetime.fromisoformat(reminder['reminder_time'].replace('Z', '+00:00'))
             
-            # Calculate next occurrence
             if repeat_type == 'Daily':
-                next_time = scheduled_time.replace(day=scheduled_time.day + 1)
+                next_time = current_time + timedelta(days=1)
             elif repeat_type == 'Weekly':
-                next_time = scheduled_time.replace(day=scheduled_time.day + 7)
+                next_time = current_time + timedelta(weeks=1)
             elif repeat_type == 'Monthly':
-                if scheduled_time.month == 12:
-                    next_time = scheduled_time.replace(year=scheduled_time.year + 1, month=1)
-                else:
-                    next_time = scheduled_time.replace(month=scheduled_time.month + 1)
+                next_time = current_time + timedelta(days=30)  # Approximate month
             else:
                 return
             
-            # Create new reminder
-            new_reminder = reminder.copy()
-            new_reminder.update({
-                'id': len(self.reminders) + 1,
-                'scheduled_time': next_time.isoformat(),
-                'sent': False,
-                'active': True
-            })
-            
-            self.reminders.append(new_reminder)
-            logger.info(f"Repeat reminder scheduled for {next_time}")
+            reminder['reminder_time'] = next_time.isoformat()
             
         except Exception as e:
-            logger.error(f"Error scheduling repeat reminder: {e}")
+            logger.error(f"Error scheduling repeat for reminder {reminder.get('id', 'unknown')}: {e}")
 
     @reminder_check.before_loop
     async def before_reminder_check(self):
         """Wait for bot to be ready before starting reminder check"""
         await self.bot.wait_until_ready()
+
+    def cog_unload(self):
+        """Clean up when cog is unloaded"""
+        self.reminder_check.cancel()
 
 async def setup(bot):
     await bot.add_cog(RemindersCog(bot))

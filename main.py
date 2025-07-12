@@ -44,12 +44,11 @@ class EMSBot(commands.Bot):
             cogs = [
                 'cogs.alerts',
                 'cogs.help_system',
-                'cogs.simple_commands'
-                # Temporarily disabled until syntax fixes:
-                # 'cogs.documents',
-                # 'cogs.missions', 
-                # 'cogs.reminders',
-                # 'cogs.ranks'
+                'cogs.simple_commands',
+                'cogs.documents',
+                'cogs.missions', 
+                'cogs.reminders',
+                'cogs.ranks'
             ]
             
             for cog in cogs:

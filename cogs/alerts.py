@@ -126,8 +126,8 @@ class AlertsCog(commands.Cog):
         )
         
         embed.add_field(
-            name="📨 Original Message",
-            value=f"```{message.content[:500]}```",
+            name="📨 Alert Trigger",
+            value=f"**Source:** Discord Message\n**Content:** ```{message.content[:400]}```",
             inline=False
         )
         

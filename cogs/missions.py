@@ -4,406 +4,339 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime, timezone
-import asyncio
 
 logger = logging.getLogger(__name__)
 
 class MissionsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.missions_file = Path('data/missions.json')
-        self.missions = self.load_missions()
-        self.active_missions = {}  # Store active missions by user ID
-        
-        # Mission types
-        self.mission_types = [
-            "Medical Evacuation",
-            "Search and Rescue", 
-            "Emergency Response",
-            "Patient Transport",
-            "Training Flight",
-            "Helicopter Rescue",
-            "Multi-Unit Response",
-            "Night Operations",
-            "Weather Emergency",
-            "Other"
-        ]
+        self.missions = {}
+        self.active_missions = {}
+        self.rank_hierarchy = {
+            "Student": 1,
+            "Trainer": 2,
+            "Command": 3
+        }
+        self.load_missions()
         
     def load_missions(self):
         """Load missions database"""
         try:
-            if self.missions_file.exists():
-                with open(self.missions_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+            missions_file = Path('data/missions.json')
+            if missions_file.exists():
+                with open(missions_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.missions = data.get('missions', {})
+                    self.active_missions = data.get('active_missions', {})
             else:
-                return []
+                self.missions = {}
+                self.active_missions = {}
+                self.save_missions()
         except Exception as e:
             logger.error(f"Error loading missions: {e}")
-            return []
+            self.missions = {}
+            self.active_missions = {}
     
     async def save_missions(self):
         """Save missions database"""
         try:
-            with open(self.missions_file, 'w', encoding='utf-8') as f:
-                json.dump(self.missions, f, indent=2)
+            Path('data').mkdir(exist_ok=True)
+            data = {
+                'missions': self.missions,
+                'active_missions': self.active_missions
+            }
+            with open('data/missions.json', 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
         except Exception as e:
             logger.error(f"Error saving missions: {e}")
-
+    
     def get_user_rank(self, user):
         """Get user's rank"""
-        try:
-            users_file = Path('data/users.json')
-            if users_file.exists():
-                with open(users_file, 'r') as f:
-                    users_data = json.load(f)
-                    user_data = users_data.get(str(user.id), {})
-                    return user_data.get('rank', 'Student')
-        except:
-            pass
-        return 'Student'
+        role_names = [role.name.lower() for role in user.roles]
+        
+        if any(name in role_names for name in ['command', 'commander', 'chief']):
+            return "Command"
+        elif any(name in role_names for name in ['trainer', 'instructor', 'teacher']):
+            return "Trainer"
+        else:
+            return "Student"
 
     @discord.app_commands.command(name="start_mission", description="Start a new EMS mission")
-    @discord.app_commands.describe(description="Mission description")
+    @discord.app_commands.describe(
+        mission_type="Type of mission",
+        location="Mission location",
+        description="Mission description"
+    )
+    @discord.app_commands.choices(mission_type=[
+        discord.app_commands.Choice(name="Medical Evacuation", value="Medical Evacuation"),
+        discord.app_commands.Choice(name="Search and Rescue", value="Search and Rescue"), 
+        discord.app_commands.Choice(name="Emergency Response", value="Emergency Response"),
+        discord.app_commands.Choice(name="Patient Transport", value="Patient Transport"),
+        discord.app_commands.Choice(name="Training Flight", value="Training Flight"),
+        discord.app_commands.Choice(name="Helicopter Rescue", value="Helicopter Rescue"),
+        discord.app_commands.Choice(name="Multi-Unit Response", value="Multi-Unit Response"),
+        discord.app_commands.Choice(name="Night Operations", value="Night Operations"),
+        discord.app_commands.Choice(name="Weather Emergency", value="Weather Emergency"),
+        discord.app_commands.Choice(name="Other", value="Other")
+    ])
     async def start_mission(
         self,
-        ctx,
-        mission_type: str = 
-            str,
-            "Type of mission",
-            choices=["Medical Evacuation", "Search and Rescue", "Emergency Response", 
-                    "Patient Transport", "Training Flight", "Helicopter Rescue",
-                    "Multi-Unit Response", "Night Operations", "Weather Emergency", "Other"],
-            required=True
-        ),
-        description: str = None,
-        location: str = None
+        interaction: discord.Interaction,
+        mission_type: str,
+        location: str,
+        description: str = "No description provided"
     ):
         """Start a new mission"""
         try:
             user_id = str(interaction.user.id)
             
-            # Check if user already has an active mission
+            # Check if user already has active mission
             if user_id in self.active_missions:
                 await interaction.response.send_message("❌ You already have an active mission. End it first with `/end_mission`.")
                 return
             
-            # Create mission record
+            # Create mission
+            mission_id = len(self.missions) + 1
             mission = {
-                'id': len(self.missions) + 1,
+                'id': mission_id,
                 'user_id': user_id,
-                'username': interaction.user.display_name,
+                'user_name': interaction.user.display_name,
                 'type': mission_type,
-                'description': description or f"{mission_type} mission",
                 'location': location,
+                'description': description,
                 'start_time': datetime.now(timezone.utc).isoformat(),
                 'end_time': None,
-                'duration': None,
                 'success': None,
-                'status': 'Active',
-                'user_rank': self.get_user_rank(interaction.user)
+                'notes': None
             }
             
-            # Add to active missions
-            self.active_missions[user_id] = mission
+            self.missions[str(mission_id)] = mission
+            self.active_missions[user_id] = mission_id
+            await self.save_missions()
             
-            # Create embed
             embed = discord.Embed(
                 title="🚁 Mission Started",
-                description=f"**{mission_type}** mission has been initiated",
-                color=0x00ff00,
-                timestamp=datetime.now(timezone.utc)
+                description=f"**{mission_type}** mission has begun",
+                color=0x00ff00
             )
-            
-            embed.add_field(name="👤 Pilot", value=interaction.user.display_name, inline=True)
-            embed.add_field(name="🎖️ Rank", value=mission['user_rank'], inline=True)
-            embed.add_field(name="🆔 Mission ID", value=f"#{mission['id']}", inline=True)
-            
-            if description:
-                embed.add_field(name="📋 Description", value=description, inline=False)
-            
-            if location:
-                embed.add_field(name="📍 Location", value=location, inline=False)
-            
-            embed.add_field(
-                name="⏰ Started",
-                value=f"<t:{int(datetime.now(timezone.utc).timestamp())}:F>",
-                inline=False
-            )
-            
-            embed.set_footer(text="Use /end_mission to complete this mission")
+            embed.add_field(name="Mission ID", value=str(mission_id), inline=True)
+            embed.add_field(name="Location", value=location, inline=True)
+            embed.add_field(name="Pilot", value=interaction.user.display_name, inline=True)
+            embed.add_field(name="Description", value=description, inline=False)
+            embed.add_field(name="Started", value=f"<t:{int(datetime.now(timezone.utc).timestamp())}:R>", inline=True)
             
             await interaction.response.send_message(embed=embed)
-            logger.info(f"Mission started by {interaction.user} - Type: {mission_type}")
             
         except Exception as e:
             logger.error(f"Error in start_mission command: {e}")
             await interaction.response.send_message("❌ An error occurred while starting the mission.")
 
     @discord.app_commands.command(name="end_mission", description="End your active mission")
-    @discord.app_commands.describe(description="Mission description")
+    @discord.app_commands.describe(
+        success="Was the mission successful?",
+        notes="Additional mission notes"
+    )
+    @discord.app_commands.choices(success=[
+        discord.app_commands.Choice(name="Successful", value="true"),
+        discord.app_commands.Choice(name="Unsuccessful", value="false"),
+        discord.app_commands.Choice(name="Partial Success", value="partial")
+    ])
     async def end_mission(
         self,
-        ctx,
-        success: str = 
-            str,
-            "Was the mission successful?",
-            choices=["Yes", "No"],
-            required=True
-        ),
+        interaction: discord.Interaction,
+        success: str,
         notes: str = None
     ):
         """End an active mission"""
         try:
             user_id = str(interaction.user.id)
             
-            # Check if user has an active mission
+            # Check if user has active mission
             if user_id not in self.active_missions:
-                await interaction.response.send_message("❌ You don't have an active mission to end.")
+                await interaction.response.send_message("❌ You don't have any active missions.")
                 return
             
-            # Get mission data
-            mission = self.active_missions[user_id]
+            mission_id = self.active_missions[user_id]
+            mission = self.missions[str(mission_id)]
+            
+            # Update mission
+            mission['end_time'] = datetime.now(timezone.utc).isoformat()
+            mission['success'] = success
+            mission['notes'] = notes
+            
+            # Remove from active missions
+            del self.active_missions[user_id]
+            await self.save_missions()
             
             # Calculate duration
-            start_time = datetime.fromisoformat(mission['start_time'])
+            start_time = datetime.fromisoformat(mission['start_time'].replace('Z', '+00:00'))
             end_time = datetime.now(timezone.utc)
             duration = end_time - start_time
             
-            # Update mission record
-            mission.update({
-                'end_time': end_time.isoformat(),
-                'duration': str(duration),
-                'success': success == "Yes",
-                'status': 'Completed',
-                'notes': notes
-            })
+            success_emoji = "✅" if success == "true" else "⚠️" if success == "partial" else "❌"
+            success_text = "Successful" if success == "true" else "Partial Success" if success == "partial" else "Unsuccessful"
             
-            # Move to completed missions
-            self.missions.append(mission)
-            del self.active_missions[user_id]
-            
-            # Save to file
-            await self.save_missions()
-            
-            # Create embed
-            success_color = 0x00ff00 if success == "Yes" else 0xff6b6b
             embed = discord.Embed(
-                title="✅ Mission Completed" if success == "Yes" else "❌ Mission Failed",
-                description=f"**{mission['type']}** mission has been completed",
-                color=success_color,
-                timestamp=end_time
+                title=f"{success_emoji} Mission Completed",
+                description=f"**{mission['type']}** mission ended",
+                color=0x00ff00 if success == "true" else 0xffa500 if success == "partial" else 0xff0000
             )
-            
-            embed.add_field(name="👤 Pilot", value=interaction.user.display_name, inline=True)
-            embed.add_field(name="🆔 Mission ID", value=f"#{mission['id']}", inline=True)
-            embed.add_field(name="✅ Success", value=success, inline=True)
-            
-            embed.add_field(name="⏱️ Duration", value=str(duration).split('.')[0], inline=True)
-            embed.add_field(name="📍 Location", value=mission.get('location', 'Not specified'), inline=True)
-            embed.add_field(name="🎖️ Rank", value=mission['user_rank'], inline=True)
-            
-            if mission.get('description'):
-                embed.add_field(name="📋 Description", value=mission['description'], inline=False)
-            
+            embed.add_field(name="Mission ID", value=str(mission_id), inline=True)
+            embed.add_field(name="Location", value=mission['location'], inline=True)
+            embed.add_field(name="Duration", value=f"{duration.seconds // 60} minutes", inline=True)
+            embed.add_field(name="Status", value=success_text, inline=True)
+            embed.add_field(name="Pilot", value=interaction.user.display_name, inline=True)
             if notes:
-                embed.add_field(name="📝 Notes", value=notes, inline=False)
-            
-            embed.set_footer(text=f"Mission completed • Total missions: {len(self.missions)}")
+                embed.add_field(name="Notes", value=notes, inline=False)
             
             await interaction.response.send_message(embed=embed)
-            logger.info(f"Mission completed by {interaction.user} - Success: {success}")
             
         except Exception as e:
             logger.error(f"Error in end_mission command: {e}")
             await interaction.response.send_message("❌ An error occurred while ending the mission.")
 
-    @discord.app_commands.command(name="mission_status", description="Check your current mission status")
-    @discord.app_commands.describe(description="Mission description")
+    @commands.command(name="mission_status")
     async def mission_status(self, ctx):
         """Check current mission status"""
         try:
-            user_id = str(interaction.user.id)
+            user_id = str(ctx.author.id)
             
             if user_id not in self.active_missions:
-                await interaction.response.send_message("📋 You don't have an active mission.")
+                await ctx.send("📭 You don't have any active missions.")
                 return
             
-            mission = self.active_missions[user_id]
-            start_time = datetime.fromisoformat(mission['start_time'])
-            current_duration = datetime.now(timezone.utc) - start_time
+            mission_id = self.active_missions[user_id]
+            mission = self.missions[str(mission_id)]
+            
+            start_time = datetime.fromisoformat(mission['start_time'].replace('Z', '+00:00'))
+            duration = datetime.now(timezone.utc) - start_time
             
             embed = discord.Embed(
                 title="🚁 Active Mission Status",
-                description=f"**{mission['type']}** - In Progress",
-                color=0xffa500,
-                timestamp=datetime.now(timezone.utc)
+                description=f"**{mission['type']}** in progress",
+                color=0x3498db
             )
+            embed.add_field(name="Mission ID", value=str(mission_id), inline=True)
+            embed.add_field(name="Location", value=mission['location'], inline=True)
+            embed.add_field(name="Duration", value=f"{duration.seconds // 60} minutes", inline=True)
+            embed.add_field(name="Description", value=mission['description'], inline=False)
             
-            embed.add_field(name="🆔 Mission ID", value=f"#{mission['id']}", inline=True)
-            embed.add_field(name="⏱️ Duration", value=str(current_duration).split('.')[0], inline=True)
-            embed.add_field(name="🎖️ Rank", value=mission['user_rank'], inline=True)
-            
-            if mission.get('description'):
-                embed.add_field(name="📋 Description", value=mission['description'], inline=False)
-            
-            if mission.get('location'):
-                embed.add_field(name="📍 Location", value=mission['location'], inline=False)
-            
-            embed.add_field(
-                name="⏰ Started",
-                value=f"<t:{int(start_time.timestamp())}:R>",
-                inline=False
-            )
-            
-            embed.set_footer(text="Use /end_mission to complete this mission")
-            
-            await interaction.response.send_message(embed=embed)
+            await ctx.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error in mission_status command: {e}")
-            await interaction.response.send_message("❌ An error occurred while checking mission status.")
+            await ctx.send("❌ An error occurred while checking mission status.")
 
-    @discord.app_commands.command(name="mission_history", description="View your mission history")
-    @discord.app_commands.describe(description="Mission description")
-    async def mission_history(
-        self,
-        ctx,
-        user: str = None
-    ):
+    @commands.command(name="mission_history")
+    async def mission_history(self, ctx, user: str = None):
         """View mission history"""
         try:
-            target_user = user if user else interaction.user
-            requester_rank = self.get_user_rank(interaction.user)
+            target_user = ctx.author if user is None else None
             
-            # Check permissions for viewing other users
-            if user and requester_rank not in ['Trainer', 'Command']:
-                await interaction.response.send_message("❌ You need Trainer rank or higher to view other users' mission history.")
-                return
-            
-            # Filter missions for the target user
-            user_missions = [m for m in self.missions if m['user_id'] == str(target_user.id)]
+            # Filter missions
+            user_missions = []
+            for mission in self.missions.values():
+                if user is None:
+                    if mission['user_id'] == str(ctx.author.id):
+                        user_missions.append(mission)
+                else:
+                    if user.lower() in mission['user_name'].lower():
+                        user_missions.append(mission)
             
             if not user_missions:
-                await interaction.response.send_message(f"📋 No completed missions found for {target_user.display_name}.")
+                await ctx.send("📋 No mission history found.")
                 return
             
-            # Calculate statistics
-            total_missions = len(user_missions)
-            successful_missions = sum(1 for m in user_missions if m.get('success', False))
-            success_rate = (successful_missions / total_missions * 100) if total_missions > 0 else 0
-            
-            # Recent missions (last 10)
-            recent_missions = sorted(user_missions, key=lambda x: x['start_time'], reverse=True)[:10]
+            # Sort by start time (newest first)
+            user_missions.sort(key=lambda x: x['start_time'], reverse=True)
             
             embed = discord.Embed(
-                title=f"📊 Mission History - {target_user.display_name}",
-                description=f"Flight record and statistics",
+                title="📋 Mission History",
+                description=f"Recent missions for {target_user.display_name if target_user else user}",
                 color=0x3498db
             )
             
-            embed.add_field(name="📈 Total Missions", value=str(total_missions), inline=True)
-            embed.add_field(name="✅ Successful", value=str(successful_missions), inline=True)
-            embed.add_field(name="📊 Success Rate", value=f"{success_rate:.1f}%", inline=True)
-            
-            # Mission types breakdown
-            mission_types = {}
-            for mission in user_missions:
-                mission_type = mission['type']
-                mission_types[mission_type] = mission_types.get(mission_type, 0) + 1
-            
-            if mission_types:
-                types_text = "\n".join([f"• {mtype}: {count}" for mtype, count in sorted(mission_types.items())])
-                embed.add_field(name="🎯 Mission Types", value=types_text, inline=False)
-            
-            # Recent missions
-            if recent_missions:
-                recent_text = ""
-                for mission in recent_missions[:5]:
-                    status_emoji = "✅" if mission.get('success', False) else "❌"
-                    date = datetime.fromisoformat(mission['start_time']).strftime("%m/%d")
-                    recent_text += f"{status_emoji} **{mission['type']}** - {date}\n"
+            for mission in user_missions[:5]:  # Show last 5 missions
+                success_emoji = "✅" if mission.get('success') == "true" else "⚠️" if mission.get('success') == "partial" else "❌" if mission.get('success') == "false" else "🔄"
                 
-                embed.add_field(name="🕒 Recent Missions", value=recent_text.strip(), inline=False)
+                start_time = datetime.fromisoformat(mission['start_time'].replace('Z', '+00:00'))
+                if mission.get('end_time'):
+                    end_time = datetime.fromisoformat(mission['end_time'].replace('Z', '+00:00'))
+                    duration = end_time - start_time
+                    duration_text = f"{duration.seconds // 60} minutes"
+                else:
+                    duration_text = "In progress"
+                
+                embed.add_field(
+                    name=f"{success_emoji} {mission['type']} (#{mission['id']})",
+                    value=f"**Location:** {mission['location']}\n**Duration:** {duration_text}\n**Date:** <t:{int(start_time.timestamp())}:d>",
+                    inline=True
+                )
             
-            embed.set_thumbnail(url=target_user.display_avatar.url)
-            embed.set_footer(text=f"Rank: {user_missions[-1].get('user_rank', 'Unknown')}")
-            
-            await interaction.response.send_message(embed=embed)
+            await ctx.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error in mission_history command: {e}")
-            await interaction.response.send_message("❌ An error occurred while loading mission history.")
+            await ctx.send("❌ An error occurred while loading mission history.")
 
-    @discord.app_commands.command(name="leaderboard", description="View mission leaderboard")
-    @discord.app_commands.describe(description="Mission description")
+    @commands.command(name="leaderboard")
     async def leaderboard(self, ctx):
         """Display mission leaderboard"""
         try:
-            if not self.missions:
-                await interaction.response.send_message("📋 No missions have been completed yet.")
-                return
-            
-            # Calculate user statistics
+            # Calculate stats
             user_stats = {}
-            for mission in self.missions:
+            for mission in self.missions.values():
                 user_id = mission['user_id']
-                username = mission['username']
+                user_name = mission['user_name']
                 
                 if user_id not in user_stats:
                     user_stats[user_id] = {
-                        'username': username,
+                        'name': user_name,
                         'total': 0,
                         'successful': 0,
-                        'rank': mission.get('user_rank', 'Unknown')
+                        'unsuccessful': 0,
+                        'partial': 0
                     }
                 
                 user_stats[user_id]['total'] += 1
-                if mission.get('success', False):
+                
+                success = mission.get('success')
+                if success == "true":
                     user_stats[user_id]['successful'] += 1
+                elif success == "false":
+                    user_stats[user_id]['unsuccessful'] += 1
+                elif success == "partial":
+                    user_stats[user_id]['partial'] += 1
             
-            # Sort by successful missions, then by total missions
-            sorted_users = sorted(
-                user_stats.items(),
-                key=lambda x: (x[1]['successful'], x[1]['total']),
-                reverse=True
-            )
+            if not user_stats:
+                await ctx.send("📊 No mission data available for leaderboard.")
+                return
+            
+            # Sort by total missions
+            sorted_users = sorted(user_stats.items(), key=lambda x: x[1]['total'], reverse=True)
             
             embed = discord.Embed(
-                title="🏆 EMS Mission Leaderboard",
-                description="Top pilots by successful missions",
-                color=0xf1c40f
+                title="🏆 Mission Leaderboard",
+                description="Top pilots by mission count",
+                color=0xffd700
             )
             
-            leaderboard_text = ""
             for i, (user_id, stats) in enumerate(sorted_users[:10], 1):
                 success_rate = (stats['successful'] / stats['total'] * 100) if stats['total'] > 0 else 0
                 
-                if i == 1:
-                    emoji = "🥇"
-                elif i == 2:
-                    emoji = "🥈"
-                elif i == 3:
-                    emoji = "🥉"
-                else:
-                    emoji = f"{i}."
-                
-                leaderboard_text += f"{emoji} **{stats['username']}**\n"
-                leaderboard_text += f"   ✅ {stats['successful']}/{stats['total']} ({success_rate:.1f}%)\n"
-                leaderboard_text += f"   🎖️ {stats['rank']}\n\n"
+                embed.add_field(
+                    name=f"{i}. {stats['name']}",
+                    value=f"**Total:** {stats['total']} missions\n"
+                          f"**Success Rate:** {success_rate:.1f}%\n"
+                          f"✅ {stats['successful']} | ⚠️ {stats['partial']} | ❌ {stats['unsuccessful']}",
+                    inline=True
+                )
             
-            embed.add_field(
-                name="📊 Rankings",
-                value=leaderboard_text.strip(),
-                inline=False
-            )
-            
-            embed.set_footer(text=f"Total completed missions: {len(self.missions)}")
-            
-            await interaction.response.send_message(embed=embed)
+            await ctx.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error in leaderboard command: {e}")
-            await interaction.response.send_message("❌ An error occurred while loading the leaderboard.")
+            await ctx.send("❌ An error occurred while loading leaderboard.")
 
 async def setup(bot):
     await bot.add_cog(MissionsCog(bot))
