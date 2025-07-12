@@ -1,0 +1,163 @@
+{
+  "emergency_procedures": {
+    "engine_failure": {
+      "description": "Procedures for handling complete or partial engine failure during flight",
+      "keywords": ["engine", "failure", "power", "glide"],
+      "procedures": [
+        "Maintain best glide speed immediately",
+        "Look for suitable emergency landing area",
+        "Attempt restart if altitude permits",
+        "Declare emergency with ATC",
+        "Prepare for forced landing",
+        "Secure aircraft systems before landing"
+      ],
+      "tips": [
+        "Altitude is your friend - don't waste it",
+        "Aim for the first third of your chosen field",
+        "Turn off fuel and electrical systems before impact"
+      ]
+    },
+    "severe_weather": {
+      "description": "Handling severe weather diversions and emergency procedures",
+      "keywords": ["weather", "storm", "diversion", "turbulence"],
+      "procedures": [
+        "Request immediate vector around weather",
+        "Consider diversion to alternate airport",
+        "Maintain safe altitude above terrain",
+        "Use weather radar if available",
+        "Reduce airspeed for turbulence penetration",
+        "Land at nearest suitable airport"
+      ],
+      "tips": [
+        "Don't try to penetrate severe weather",
+        "Have multiple alternate airports planned",
+        "Monitor weather updates continuously"
+      ]
+    },
+    "communication_failure": {
+      "description": "Procedures when radio communication is lost",
+      "keywords": ["radio", "communication", "lost", "comms", "7600"],
+      "procedures": [
+        "Squawk 7600 immediately",
+        "Try different radio/frequency",
+        "Continue on last assigned route and altitude",
+        "Follow standard lost communication procedures",
+        "Announce intentions on guard frequency 121.5",
+        "Rock wings to acknowledge light signals"
+      ],
+      "tips": [
+        "Squawk 7600 is universally recognized",
+        "Guard frequency is monitored by all ATC",
+        "Know light gun signals before you need them"
+      ]
+    }
+  },
+  "medical_procedures": {
+    "patient_loading": {
+      "description": "Safe and efficient patient loading procedures for EMS flights",
+      "keywords": ["patient", "loading", "medical", "evacuation"],
+      "procedures": [
+        "Shut down engines completely before loading",
+        "Ensure rotor disc is stopped (helicopters)",
+        "Brief medical team on aircraft safety",
+        "Secure all medical equipment properly",
+        "Verify patient is stable for transport",
+        "Complete weight and balance calculations"
+      ],
+      "tips": [
+        "Patient safety is always the priority",
+        "Never rush the loading process",
+        "Communicate with medical team throughout"
+      ]
+    },
+    "in_flight_medical": {
+      "description": "Handling medical emergencies during flight",
+      "keywords": ["medical", "emergency", "patient", "critical"],
+      "procedures": [
+        "Maintain aircraft control as priority",
+        "Request priority landing at nearest hospital",
+        "Coordinate with medical team onboard",
+        "Prepare for possible CPR landing",
+        "Communicate patient status to receiving hospital",
+        "Execute rapid but safe approach and landing"
+      ],
+      "tips": [
+        "Fly the aircraft first, then assist medical team",
+        "Know locations of all nearby hospitals",
+        "Practice emergency descent procedures"
+      ]
+    }
+  },
+  "communication": {
+    "emergency_phraseology": {
+      "description": "Standard phraseology for emergency communications",
+      "keywords": ["mayday", "pan-pan", "emergency", "radio"],
+      "procedures": [
+        "MAYDAY for life-threatening emergencies",
+        "PAN-PAN for urgent situations",
+        "State aircraft identification",
+        "Give nature of emergency",
+        "Provide position and altitude",
+        "State intentions and assistance needed"
+      ],
+      "tips": [
+        "Speak clearly and slowly",
+        "Repeat important information",
+        "Don't be afraid to declare emergency"
+      ]
+    },
+    "atc_coordination": {
+      "description": "Effective coordination with Air Traffic Control",
+      "keywords": ["atc", "clearance", "coordination", "priority"],
+      "procedures": [
+        "Request priority clearance for EMS flights",
+        "Provide flight plan and route",
+        "Communicate any special requirements",
+        "Acknowledge all clearances",
+        "Report any deviations immediately",
+        "Coordinate landing with destination airport"
+      ],
+      "tips": [
+        "EMS flights usually get priority handling",
+        "Be specific about your requirements",
+        "Maintain professional communication"
+      ]
+    }
+  },
+  "flight_operations": {
+    "landing_sites": {
+      "description": "Selecting appropriate emergency landing sites",
+      "keywords": ["landing", "emergency", "site", "field"],
+      "procedures": [
+        "Look for flat, obstacle-free terrain",
+        "Consider wind direction and strength",
+        "Assess approach and departure paths",
+        "Check for ground accessibility for EMS",
+        "Verify adequate length and width",
+        "Avoid populated areas if possible"
+      ],
+      "tips": [
+        "Always have backup landing sites identified",
+        "Soft ground is better than hard surfaces",
+        "Consider emergency vehicle access"
+      ]
+    },
+    "short_field_operations": {
+      "description": "Techniques for short field takeoffs and landings",
+      "keywords": ["short", "field", "stol", "takeoff", "landing"],
+      "procedures": [
+        "Use full flaps for maximum lift",
+        "Apply maximum allowable power",
+        "Rotate at recommended short field speed",
+        "Maintain best angle of climb speed",
+        "Land on numbers for maximum rollout",
+        "Apply maximum braking after touchdown"
+      ],
+      "tips": [
+        "Know your aircraft's short field performance",
+        "Account for wind and density altitude",
+        "Practice these procedures regularly"
+      ]
+    }
+  }
+}
