@@ -140,7 +140,7 @@ class AlertsCog(commands.Cog):
         """Listen for emergency keywords in messages"""
         if message.author.bot:
             return
-            
+        
         content = message.content.lower()
         
         # Check for emergency keywords
@@ -155,8 +155,11 @@ class AlertsCog(commands.Cog):
                 # Create alert embed
                 embed = await self.create_alert_embed(message, detected_emergency)
                 
-                # Send alert to the same channel
-                alert_message = await message.channel.send(
+                # Send alert to current channel
+                alert_channel = message.channel
+                
+                # Send alert
+                alert_message = await alert_channel.send(
                     content="@everyone 🚨 **EMERGENCY RESPONSE ALERT** 🚨",
                     embed=embed
                 )
@@ -164,13 +167,13 @@ class AlertsCog(commands.Cog):
                 # Add reaction to original message
                 await message.add_reaction("🚨")
                 
-                # Pin the alert message
+                # Pin the alert message if possible
                 try:
                     await alert_message.pin()
                 except:
                     pass  # Ignore if can't pin
                     
-                logger.info(f"Emergency alert triggered by {message.author} for keyword: {detected_emergency}")
+                logger.info(f"Emergency alert triggered by {message.author} for keyword: {detected_emergency} in channel: {message.channel.id}")
                 
             except Exception as e:
                 logger.error(f"Error creating emergency alert: {e}")
@@ -225,6 +228,80 @@ class AlertsCog(commands.Cog):
         )
         
         await interaction.response.send_message(embed=embed)
+
+    @discord.app_commands.command(name="report_emergency", description="Report emergency from external EMS server")
+    @discord.app_commands.describe(
+        emergency_type="Type of emergency (e.g., engine failure, crash, medical)",
+        location="Location or coordinates",
+        details="Additional emergency details"
+    )
+    async def report_emergency(
+        self,
+        interaction: discord.Interaction,
+        emergency_type: str,
+        location: str = "Unknown",
+        details: str = "No additional details"
+    ):
+        """Report emergency from external EMS server chatlog"""
+        try:
+            embed = discord.Embed(
+                title="🚨 EXTERNAL EMS EMERGENCY REPORT",
+                description=f"Emergency reported from EMS Server Chatlog",
+                color=0xff0000
+            )
+            
+            embed.add_field(name="⚠️ Emergency Type", value=emergency_type, inline=True)
+            embed.add_field(name="📍 Location", value=location, inline=True)
+            embed.add_field(name="📡 Source", value="Channel 1255340044948865095", inline=True)
+            embed.add_field(name="ℹ️ Details", value=details, inline=False)
+            embed.add_field(name="👤 Reported By", value=interaction.user.display_name, inline=True)
+            
+            # Add emergency procedures based on type
+            emergency_lower = emergency_type.lower()
+            procedures = []
+            
+            if any(word in emergency_lower for word in ['engine', 'failure', 'power']):
+                procedures.append("• Execute engine failure checklist")
+                procedures.append("• Find nearest suitable airport")
+                procedures.append("• Declare emergency with ATC")
+                
+            elif any(word in emergency_lower for word in ['crash', 'down', 'accident']):
+                procedures.append("• Initiate search and rescue operations")
+                procedures.append("• Contact emergency services")
+                procedures.append("• Coordinate response efforts")
+                
+            elif any(word in emergency_lower for word in ['medical', 'patient', 'injury']):
+                procedures.append("• Assess patient condition")
+                procedures.append("• Prepare medical equipment")
+                procedures.append("• Coordinate with medical facilities")
+            
+            if procedures:
+                embed.add_field(
+                    name="📋 Immediate Actions",
+                    value="\n".join(procedures),
+                    inline=False
+                )
+            
+            # Add GeoFS link
+            geofs_link = self.create_geofs_link()
+            embed.add_field(
+                name="🗺️ GeoFS Map",
+                value=f"[Open GeoFS Map]({geofs_link})",
+                inline=True
+            )
+            
+            embed.set_footer(text=f"External EMS Alert System | Reported at {interaction.created_at.strftime('%H:%M UTC')}")
+            
+            await interaction.response.send_message(
+                content="@everyone 🚨 **EXTERNAL EMS EMERGENCY** 🚨",
+                embed=embed
+            )
+            
+            logger.info(f"External emergency reported by {interaction.user}: {emergency_type} at {location}")
+            
+        except Exception as e:
+            logger.error(f"Error in report_emergency command: {e}")
+            await interaction.response.send_message("❌ Error creating emergency report.")
 
 async def setup(bot):
     await bot.add_cog(AlertsCog(bot))

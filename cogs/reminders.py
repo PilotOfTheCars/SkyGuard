@@ -26,10 +26,18 @@ class RemindersCog(commands.Cog):
             reminders_file = Path('data/reminders.json')
             if reminders_file.exists():
                 with open(reminders_file, 'r', encoding='utf-8') as f:
-                    self.reminders = json.load(f)
+                    data = json.load(f)
+                    # Ensure we have a dict, not a list
+                    if isinstance(data, dict):
+                        self.reminders = data
+                    else:
+                        self.reminders = {}
             else:
                 self.reminders = {}
-                self.save_reminders()
+                # Create empty file
+                Path('data').mkdir(exist_ok=True)
+                with open('data/reminders.json', 'w', encoding='utf-8') as f:
+                    json.dump({}, f, indent=2)
         except Exception as e:
             logger.error(f"Error loading reminders: {e}")
             self.reminders = {}
@@ -183,6 +191,13 @@ class RemindersCog(commands.Cog):
         try:
             current_time = datetime.now(timezone.utc)
             
+            # Ensure reminders is a dict
+            if not isinstance(self.reminders, dict):
+                logger.warning("Reminders data corrupted, resetting to empty dict")
+                self.reminders = {}
+                await self.save_reminders()
+                return
+                
             for reminder_id, reminder in list(self.reminders.items()):
                 if not reminder.get('active', True):
                     continue
